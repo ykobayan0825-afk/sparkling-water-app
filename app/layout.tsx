@@ -1,44 +1,38 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import './globals.css'
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import "./globals.css"
+import { Toaster } from "sonner"
+import { InventoryProvider } from "@/contexts/inventory-context"
+import { AppShell } from "@/components/app-shell"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+})
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
+})
 
 export const metadata: Metadata = {
-  title: '炭酸水 在庫管理アプリ',
-  description: '炭酸水の在庫・消費・発注目安を管理するアプリ',
-  manifest: '/manifest.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: '炭酸水在庫',
-  },
-  icons: {
-    apple: '/icon-192.png',
-  },
+  title: "炭酸水在庫管理",
+  description: "ワンタップとQRで素早く記録できる炭酸水在庫管理アプリ",
 }
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ja">
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <InventoryProvider>
+          <AppShell>{children}</AppShell>
+          <Toaster richColors position="top-center" />
+        </InventoryProvider>
+      </body>
     </html>
-  );
+  )
 }
-
