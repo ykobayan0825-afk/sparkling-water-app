@@ -1,11 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useInventory } from "@/contexts/inventory-context"
 
-export default function QrRegisterPage() {
+function QrRegisterContent() {
   const searchParams = useSearchParams()
   const { state, consumeByMember, isReady } = useInventory()
 
@@ -23,6 +23,7 @@ export default function QrRegisterPage() {
 
   useEffect(() => {
     if (!isReady) return
+
     if (!memberId) {
       setStatus("error")
       setMessage("memberId が見つかりません")
@@ -105,5 +106,25 @@ export default function QrRegisterPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function QrRegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="qr-register-page">
+          <div className="card stack-gap qr-register-card">
+            <div>
+              <p className="eyebrow">QRから記録</p>
+              <h1 className="page-title qr-register-title">炭酸水の記録</h1>
+            </div>
+            <div className="qr-register-status">読み込み中です</div>
+          </div>
+        </div>
+      }
+    >
+      <QrRegisterContent />
+    </Suspense>
   )
 }
