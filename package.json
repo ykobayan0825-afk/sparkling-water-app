@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.99.3",
+    "@supabase/supabase-js": "^2.100.1",
     "clsx": "^2.1.1",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.7.0",
