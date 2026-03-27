@@ -10,7 +10,7 @@ export function loadInventoryState(): InventoryState {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return INITIAL_INVENTORY_STATE
 
-    const parsed = JSON.parse(raw) as InventoryState
+    const parsed = JSON.parse(raw) as Partial<InventoryState>
 
     return {
       currentStock:
@@ -19,6 +19,10 @@ export function loadInventoryState(): InventoryState {
           : INITIAL_INVENTORY_STATE.currentStock,
       histories: Array.isArray(parsed.histories) ? parsed.histories : [],
       members: Array.isArray(parsed.members) ? parsed.members : INITIAL_INVENTORY_STATE.members,
+      nextSubscriptionDate:
+        typeof parsed.nextSubscriptionDate === "string" || parsed.nextSubscriptionDate === null
+          ? parsed.nextSubscriptionDate
+          : INITIAL_INVENTORY_STATE.nextSubscriptionDate,
     }
   } catch {
     return INITIAL_INVENTORY_STATE

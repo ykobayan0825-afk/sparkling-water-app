@@ -171,7 +171,6 @@ export function getConsumptionStats(histories: StockHistory[], currentStock: num
       totalConsumed: 0,
       daysCount: 0,
       averagePerDay: 0,
-      requiredBottles: 0,
       recommendedCases: 0,
       estimatedRemainingDays: 0,
     }
@@ -190,9 +189,7 @@ export function getConsumptionStats(histories: StockHistory[], currentStock: num
 
   const daysCount = uniqueDays.size
   const averagePerDay = daysCount > 0 ? totalConsumed / daysCount : 0
-
-  const requiredBottles = Math.ceil(averagePerDay * 14)
-  const recommendedCases = Math.ceil(requiredBottles / 32)
+  const recommendedCases = Math.ceil(Math.ceil(averagePerDay * 14) / 32)
   const estimatedRemainingDays =
     averagePerDay > 0 ? Number((currentStock / averagePerDay).toFixed(1)) : 0
 
@@ -200,8 +197,47 @@ export function getConsumptionStats(histories: StockHistory[], currentStock: num
     totalConsumed,
     daysCount,
     averagePerDay,
-    requiredBottles,
     recommendedCases,
     estimatedRemainingDays,
+  }
+}
+
+export function getSubscriptionSummary(params: {
+  currentStock: number
+  histories: StockHistory[]
+  nextSubscriptionDate: string | null
+}) {
+  const stats = getConsumptionStats(params.histories, params.currentStock)
+
+  if (!params.nextSubscriptionDate) {
+    return {
+      daysUntilSubscription: null,
+      requiredBottlesUntilSubscription: 0,
+      shortageBottles: 0,
+      additionalCasesNeeded: 0,
+      willLastUntilSubscription: null,
+    }
+  }
+
+  const today = new Date()
+  const target = new Date(params.nextSubscriptionDate)
+
+  today.setHours(0, 0, 0, 0)
+  target.setHours(0, 0, 0, 0)
+
+  const diffMs = target.getTime() - today.getTime()
+  const daysUntilSubscription = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+
+  const requiredBottlesUntilSubscription = Math.ceil(stats.averagePerDay * daysUntilSubscription)
+  const shortageBottles = Math.max(0, requiredBottlesUntilSubscription - params.currentStock)
+  const additionalCasesNeeded = Math.ceil(shortageBottles / 32)
+  const willLastUntilSubscription = params.currentStock >= requiredBottlesUntilSubscription
+
+  return {
+    daysUntilSubscription,
+    requiredBottlesUntilSubscription,
+    shortageBottles,
+    additionalCasesNeeded,
+    willLastUntilSubscription,
   }
 }

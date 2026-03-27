@@ -21,6 +21,7 @@ export type InventoryState = {
   currentStock: number
   histories: StockHistory[]
   members: Member[]
+  nextSubscriptionDate: string | null
 }
 
 export type UndoPayload = {

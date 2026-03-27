@@ -26,4 +26,5 @@ export const INITIAL_INVENTORY_STATE: InventoryState = {
   currentStock: DEFAULT_STOCK,
   histories: [],
   members: DEFAULT_MEMBERS,
+  nextSubscriptionDate: null,
 }

@@ -22,6 +22,7 @@ type InventoryContextValue = {
   consumeByMember: (memberId: string, source?: "manual" | "qr") => void
   restock: (quantity: number) => void
   setCurrentStock: (targetStock: number) => void
+  setNextSubscriptionDate: (date: string | null) => void
   addMember: (name: string) => void
   updateMember: (memberId: string, name: string) => void
   removeMember: (memberId: string) => void
@@ -170,10 +171,29 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       }
 
       pushUndoSnapshot(prev, `在庫数の直接修正を取り消し`)
-      showUndoToast(
-        "在庫数を修正しました",
-        `現在の在庫数を${targetStock}本に変更しました`
-      )
+      showUndoToast("在庫数を修正しました", `現在の在庫数を${targetStock}本に変更しました`)
+
+      return nextState
+    })
+  }
+
+  const setNextSubscriptionDate = (date: string | null) => {
+    setState((prev) => {
+      const nextState: InventoryState = {
+        ...prev,
+        nextSubscriptionDate: date,
+      }
+
+      pushUndoSnapshot(prev, `次回定期便日の変更を取り消し`)
+      toast.success("次回定期便日を更新しました", {
+        description: date ? `${date} に設定しました` : "未設定にしました",
+        action: {
+          label: "元に戻す",
+          onClick: () => {
+            undoLastAction()
+          },
+        },
+      })
 
       return nextState
     })
@@ -281,6 +301,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       consumeByMember,
       restock,
       setCurrentStock,
+      setNextSubscriptionDate,
       addMember,
       updateMember,
       removeMember,
