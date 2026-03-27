@@ -22,23 +22,29 @@ export function RecentHistoryList() {
         <div className="empty-state">まだ履歴はありません</div>
       ) : (
         <ul className="history-list">
-          {recentHistories.map((history) => (
-            <li key={history.id} className="history-item">
-              <div>
-                <p className="history-title">
-                  {history.type === "consume"
-                    ? `${history.memberName ?? "不明"}が${history.quantity}本消費`
-                    : `${history.quantity}本補充`}
-                </p>
-                <p className="history-meta">
-                  {history.source === "qr" ? "QR" : "手動"} ・ {formatDateTime(history.timestamp)}
-                </p>
-              </div>
-              <span className={history.type === "consume" ? "badge-consume" : "badge-restock"}>
-                {history.type === "consume" ? "-1" : `+${history.quantity}`}
-              </span>
-            </li>
-          ))}
+          {recentHistories.map((history) => {
+            const isStockAdjust = history.memberName === "在庫調整"
+
+            return (
+              <li key={history.id} className="history-item">
+                <div>
+                  <p className="history-title">
+                    {isStockAdjust
+                      ? `在庫数を${history.type === "consume" ? "減少" : "増加"}調整（${history.quantity}本）`
+                      : history.type === "consume"
+                      ? `${history.memberName ?? "不明"}が${history.quantity}本消費`
+                      : `${history.quantity}本補充`}
+                  </p>
+                  <p className="history-meta">
+                    {history.source === "qr" ? "QR" : "手動"} ・ {formatDateTime(history.timestamp)}
+                  </p>
+                </div>
+                <span className={history.type === "consume" ? "badge-consume" : "badge-restock"}>
+                  {history.type === "consume" ? `-${history.quantity}` : `+${history.quantity}`}
+                </span>
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>

@@ -21,6 +21,7 @@ type InventoryContextValue = {
   isReady: boolean
   consumeByMember: (memberId: string, source?: "manual" | "qr") => void
   restock: (quantity: number) => void
+  setCurrentStock: (targetStock: number) => void
   addMember: (name: string) => void
   updateMember: (memberId: string, name: string) => void
   removeMember: (memberId: string) => void
@@ -136,6 +137,48 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  const setCurrentStock = (targetStock: number) => {
+    if (!Number.isInteger(targetStock) || targetStock < 0) {
+      toast.error("0以上の整数を入力してください")
+      return
+    }
+
+    setState((prev) => {
+      if (prev.currentStock === targetStock) {
+        toast("在庫数は変更されていません")
+        return prev
+      }
+
+      const diff = targetStock - prev.currentStock
+      const adjustmentHistory =
+        diff > 0
+          ? createRestockHistory(diff)
+          : {
+              ...createConsumeHistory({
+                memberId: "",
+                memberName: "在庫調整",
+                source: "manual",
+                quantity: Math.abs(diff),
+              }),
+              memberId: undefined,
+            }
+
+      const nextState: InventoryState = {
+        ...prev,
+        currentStock: targetStock,
+        histories: [adjustmentHistory, ...prev.histories],
+      }
+
+      pushUndoSnapshot(prev, `在庫数の直接修正を取り消し`)
+      showUndoToast(
+        "在庫数を修正しました",
+        `現在の在庫数を${targetStock}本に変更しました`
+      )
+
+      return nextState
+    })
+  }
+
   const addMember = (name: string) => {
     const trimmed = name.trim()
     if (!trimmed) {
@@ -237,6 +280,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       isReady,
       consumeByMember,
       restock,
+      setCurrentStock,
       addMember,
       updateMember,
       removeMember,

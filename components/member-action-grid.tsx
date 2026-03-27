@@ -4,9 +4,11 @@ import { useState } from "react"
 import { useInventory } from "@/contexts/inventory-context"
 
 export function MemberActionGrid() {
-  const { state, consumeByMember, restock } = useInventory()
+  const { state, consumeByMember, restock, setCurrentStock } = useInventory()
   const [showManualRestock, setShowManualRestock] = useState(false)
   const [manualQuantity, setManualQuantity] = useState("")
+  const [showSetStock, setShowSetStock] = useState(false)
+  const [targetStock, setTargetStock] = useState("")
 
   const handleManualRestock = () => {
     const quantity = Number(manualQuantity)
@@ -18,6 +20,18 @@ export function MemberActionGrid() {
     restock(quantity)
     setManualQuantity("")
     setShowManualRestock(false)
+  }
+
+  const handleSetStock = () => {
+    const quantity = Number(targetStock)
+
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      return
+    }
+
+    setCurrentStock(quantity)
+    setTargetStock("")
+    setShowSetStock(false)
   }
 
   return (
@@ -60,6 +74,13 @@ export function MemberActionGrid() {
         >
           手動入力
         </button>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setShowSetStock((prev) => !prev)}
+        >
+          在庫数を直接修正
+        </button>
       </div>
 
       {showManualRestock && (
@@ -75,6 +96,23 @@ export function MemberActionGrid() {
           />
           <button type="button" className="primary-button" onClick={handleManualRestock}>
             追加する
+          </button>
+        </div>
+      )}
+
+      {showSetStock && (
+        <div className="form-row">
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className="text-input"
+            value={targetStock}
+            onChange={(e) => setTargetStock(e.target.value)}
+            placeholder={`現在は${state.currentStock}本`}
+          />
+          <button type="button" className="primary-button" onClick={handleSetStock}>
+            在庫数を更新
           </button>
         </div>
       )}
