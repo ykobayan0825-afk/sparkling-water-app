@@ -53,7 +53,7 @@ export function MemberManager() {
 
         <div className="member-manage-list">
           {state.members.map((member) => {
-            const qrValue = JSON.stringify({ memberId: member.id })
+            const qrValue = member.id
 
             return (
               <article key={member.id} className="member-manage-card">

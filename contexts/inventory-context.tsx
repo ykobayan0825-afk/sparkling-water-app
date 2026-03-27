@@ -32,7 +32,7 @@ const InventoryContext = createContext<InventoryContextValue | undefined>(undefi
 export function InventoryProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<InventoryState>(INITIAL_INVENTORY_STATE)
   const [isReady, setIsReady] = useState(false)
-  const lastUndoRef = useRef<UndoPayload | null>(null)
+  const undoStackRef = useRef<UndoPayload[]>([])
 
   useEffect(() => {
     const loaded = loadInventoryState()
@@ -45,6 +45,31 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     saveInventoryState(state)
   }, [state, isReady])
 
+  const pushUndoSnapshot = (previousState: InventoryState, label: string) => {
+    undoStackRef.current.push({
+      previousState: structuredClone(previousState),
+      label,
+    })
+
+    if (undoStackRef.current.length > 50) {
+      undoStackRef.current.shift()
+    }
+  }
+
+  const undoLastAction = () => {
+    const latest = undoStackRef.current.pop()
+
+    if (!latest) {
+      toast.error("元に戻せる操作がありません")
+      return
+    }
+
+    setState(latest.previousState)
+    toast("元に戻しました", {
+      description: latest.label,
+    })
+  }
+
   const showUndoToast = (message: string, description: string) => {
     toast.success(message, {
       description,
@@ -55,26 +80,6 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         },
       },
     })
-  }
-
-  const pushUndoSnapshot = (previousState: InventoryState, label: string) => {
-    lastUndoRef.current = {
-      previousState: structuredClone(previousState),
-      label,
-    }
-  }
-
-  const undoLastAction = () => {
-    if (!lastUndoRef.current) {
-      toast.error("元に戻せる操作がありません")
-      return
-    }
-
-    setState(lastUndoRef.current.previousState)
-    toast("元に戻しました", {
-      description: lastUndoRef.current.label,
-    })
-    lastUndoRef.current = null
   }
 
   const consumeByMember = (memberId: string, source: "manual" | "qr" = "manual") => {
@@ -206,11 +211,9 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       const target = prev.members.find((member) => member.id === memberId)
       if (!target) return prev
 
-      const nextMembers = prev.members.filter((member) => member.id !== memberId)
-
       const nextState: InventoryState = {
         ...prev,
-        members: nextMembers,
+        members: prev.members.filter((member) => member.id !== memberId),
       }
 
       pushUndoSnapshot(prev, `${target.name}の削除を取り消し`)

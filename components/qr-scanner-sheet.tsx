@@ -20,9 +20,11 @@ export function QRScannerSheet() {
   const { consumeByMember, state } = useInventory()
   const [isOpen, setIsOpen] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
-  const [scanLock, setScanLock] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+
   const scannerRef = useRef<ScannerInstance | null>(null)
   const mountedRef = useRef(true)
+  const processingRef = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -40,10 +42,65 @@ export function QRScannerSheet() {
       }
     } catch {
       // noop
+    } finally {
+      processingRef.current = false
+      if (mountedRef.current) {
+        setIsProcessing(false)
+      }
+    }
+  }
+
+  async function handleScanSuccess(decodedText: string) {
+    if (processingRef.current) return
+
+    processingRef.current = true
+    setIsProcessing(true)
+
+    try {
+      await cleanupScanner()
+
+      const raw = decodedText.trim()
+
+      let memberId = raw
+
+      if (raw.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(raw) as { memberId?: string }
+          memberId = parsed.memberId?.trim() ?? ""
+        } catch {
+          memberId = ""
+        }
+      }
+
+      if (!memberId) {
+        toast.error("QRの内容が正しくありません")
+        return
+      }
+
+      const member = state.members.find((item) => item.id === memberId)
+
+      if (!member) {
+        toast.error("登録されていないメンバーのQRです")
+        return
+      }
+
+      consumeByMember(memberId, "qr")
+      setIsOpen(false)
+    } catch {
+      toast.error("QRの読み取りに失敗しました")
+    } finally {
+      window.setTimeout(() => {
+        processingRef.current = false
+        if (mountedRef.current) {
+          setIsProcessing(false)
+        }
+      }, 1500)
     }
   }
 
   async function openScanner() {
+    if (isProcessing) return
+
     setIsOpen(true)
     setIsStarting(true)
 
@@ -60,33 +117,7 @@ export function QRScannerSheet() {
           qrbox: { width: 220, height: 220 },
         },
         (decodedText: string) => {
-          if (scanLock) return
-
-          setScanLock(true)
-
-          try {
-            const parsed = JSON.parse(decodedText) as { memberId?: string }
-
-            if (!parsed.memberId) {
-              toast.error("QRの内容が正しくありません")
-            } else {
-              const member = state.members.find((item) => item.id === parsed.memberId)
-
-              if (!member) {
-                toast.error("登録されていないメンバーのQRです")
-              } else {
-                consumeByMember(parsed.memberId, "qr")
-              }
-            }
-          } catch {
-            toast.error("QRの読み取りに失敗しました")
-          }
-
-          window.setTimeout(() => {
-            if (mountedRef.current) {
-              setScanLock(false)
-            }
-          }, 1500)
+          void handleScanSuccess(decodedText)
         },
         () => {
           // 読み取り失敗は無視
@@ -106,7 +137,6 @@ export function QRScannerSheet() {
     await cleanupScanner()
     setIsOpen(false)
     setIsStarting(false)
-    setScanLock(false)
   }
 
   return (
@@ -119,9 +149,9 @@ export function QRScannerSheet() {
       </div>
 
       {!isOpen ? (
-        <button type="button" className="primary-button" onClick={openScanner}>
+        <button type="button" className="primary-button" onClick={openScanner} disabled={isProcessing}>
           <Camera size={18} />
-          QRを読み取る
+          {isProcessing ? "処理中..." : "QRを読み取る"}
         </button>
       ) : (
         <div className="scanner-wrap">
@@ -134,9 +164,7 @@ export function QRScannerSheet() {
 
           <div id="qr-reader" className="qr-reader-box" />
 
-          <p className="muted-text">
-            連続読み取り防止のため、成功後は1.5秒だけ再読み取りを止めます。
-          </p>
+          <p className="muted-text">読み取り成功後は即停止するため、多重登録を起こしにくくしています。</p>
         </div>
       )}
     </section>
