@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { QRCodeSVG } from "qrcode.react"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useInventory } from "@/contexts/inventory-context"
@@ -11,6 +11,11 @@ export function MemberManager() {
   const [newName, setNewName] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState("")
+
+  const appBaseUrl = useMemo(() => {
+    if (typeof window === "undefined") return ""
+    return window.location.origin
+  }, [])
 
   return (
     <div className="stack-gap-lg">
@@ -47,13 +52,15 @@ export function MemberManager() {
         <div className="section-head">
           <div>
             <h2>メンバー一覧 / QR表示</h2>
-            <p>削除しても過去の履歴は残ります</p>
+            <p>スマホの標準カメラから直接開けます</p>
           </div>
         </div>
 
         <div className="member-manage-list">
           {state.members.map((member) => {
-            const qrValue = member.id
+            const qrValue = `${appBaseUrl}/qr?memberId=${encodeURIComponent(
+              member.id
+            )}&t=${encodeURIComponent(member.id)}`
 
             return (
               <article key={member.id} className="member-manage-card">
@@ -83,6 +90,7 @@ export function MemberManager() {
                       <p className="muted-text">
                         累計消費 {getMemberConsumeCount(state.histories, member.id)}本
                       </p>
+                      <p className="muted-text qr-url-preview">{qrValue}</p>
                     </>
                   )}
 
@@ -111,7 +119,7 @@ export function MemberManager() {
                 </div>
 
                 <div className="qr-card">
-                  <QRCodeSVG value={qrValue} size={128} />
+                  {appBaseUrl ? <QRCodeSVG value={qrValue} size={128} /> : <div>URLを読込中...</div>}
                   <p className="qr-caption">{member.name}用QR</p>
                 </div>
               </article>
