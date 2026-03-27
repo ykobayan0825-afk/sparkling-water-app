@@ -1,9 +1,24 @@
 "use client"
 
+import { useState } from "react"
 import { useInventory } from "@/contexts/inventory-context"
 
 export function MemberActionGrid() {
   const { state, consumeByMember, restock } = useInventory()
+  const [showManualRestock, setShowManualRestock] = useState(false)
+  const [manualQuantity, setManualQuantity] = useState("")
+
+  const handleManualRestock = () => {
+    const quantity = Number(manualQuantity)
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      return
+    }
+
+    restock(quantity)
+    setManualQuantity("")
+    setShowManualRestock(false)
+  }
 
   return (
     <section className="card stack-gap">
@@ -35,7 +50,34 @@ export function MemberActionGrid() {
         <button type="button" className="secondary-button" onClick={() => restock(24)}>
           +24本 補充
         </button>
+        <button type="button" className="secondary-button" onClick={() => restock(32)}>
+          +32本 補充
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setShowManualRestock((prev) => !prev)}
+        >
+          手動入力
+        </button>
       </div>
+
+      {showManualRestock && (
+        <div className="form-row">
+          <input
+            type="number"
+            min="1"
+            step="1"
+            className="text-input"
+            value={manualQuantity}
+            onChange={(e) => setManualQuantity(e.target.value)}
+            placeholder="補充本数を入力"
+          />
+          <button type="button" className="primary-button" onClick={handleManualRestock}>
+            追加する
+          </button>
+        </div>
+      )}
     </section>
   )
 }

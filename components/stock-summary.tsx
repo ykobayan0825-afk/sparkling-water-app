@@ -56,7 +56,6 @@ export function StockSummary() {
       <div className="inline-note">
         <span>おすすめケース数:</span>
         <strong>{stats.recommendedCases}ケース</strong>
-        <span>（24本換算）</span>
       </div>
 
       <div className="inline-note">
