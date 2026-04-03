@@ -62,51 +62,94 @@ export async function loadSharedInventoryState(): Promise<InventoryState> {
 }
 
 export async function persistSharedInventoryState(state: InventoryState): Promise<void> {
-  const { error: appStateError } = await supabase.from("app_state").upsert({
-    id: "main",
-    current_stock: state.currentStock,
-    next_subscription_date: state.nextSubscriptionDate,
-    updated_at: new Date().toISOString(),
-  })
+  const { data: currentAppState, error: currentAppStateError } = await supabase
+    .from("app_state")
+    .select("id")
+    .eq("id", "main")
+    .maybeSingle()
 
-  if (appStateError) {
-    throw appStateError
+  if (currentAppStateError) {
+    throw currentAppStateError
   }
 
-  const { error: deleteMembersError } = await supabase
+  if (currentAppState) {
+    const { error: updateAppStateError } = await supabase
+      .from("app_state")
+      .update({
+        current_stock: state.currentStock,
+        next_subscription_date: state.nextSubscriptionDate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", "main")
+
+    if (updateAppStateError) {
+      throw updateAppStateError
+    }
+  } else {
+    const { error: insertAppStateError } = await supabase.from("app_state").insert({
+      id: "main",
+      current_stock: state.currentStock,
+      next_subscription_date: state.nextSubscriptionDate,
+      updated_at: new Date().toISOString(),
+    })
+
+    if (insertAppStateError) {
+      throw insertAppStateError
+    }
+  }
+
+  const { data: existingMembers, error: existingMembersError } = await supabase
     .from("members")
-    .delete()
-    .neq("id", "__never_match__")
+    .select("id")
 
-  if (deleteMembersError) {
-    throw deleteMembersError
+  if (existingMembersError) {
+    throw existingMembersError
   }
+
+  const nextMemberIds = new Set(state.members.map((member) => member.id))
+  const existingMemberIds = new Set((existingMembers ?? []).map((member) => member.id))
+  const memberIdsToDelete = [...existingMemberIds].filter((id) => !nextMemberIds.has(id))
 
   if (state.members.length > 0) {
-    const { error: insertMembersError } = await supabase.from("members").insert(
+    const { error: upsertMembersError } = await supabase.from("members").upsert(
       state.members.map((member) => ({
         id: member.id,
         name: member.name,
         created_at: member.createdAt,
-      }))
+      })),
+      { onConflict: "id" }
     )
 
-    if (insertMembersError) {
-      throw insertMembersError
+    if (upsertMembersError) {
+      throw upsertMembersError
     }
   }
 
-  const { error: deleteHistoriesError } = await supabase
-    .from("histories")
-    .delete()
-    .neq("id", "__never_match__")
+  if (memberIdsToDelete.length > 0) {
+    const { error: deleteMembersError } = await supabase
+      .from("members")
+      .delete()
+      .in("id", memberIdsToDelete)
 
-  if (deleteHistoriesError) {
-    throw deleteHistoriesError
+    if (deleteMembersError) {
+      throw deleteMembersError
+    }
   }
 
+  const { data: existingHistories, error: existingHistoriesError } = await supabase
+    .from("histories")
+    .select("id")
+
+  if (existingHistoriesError) {
+    throw existingHistoriesError
+  }
+
+  const nextHistoryIds = new Set(state.histories.map((history) => history.id))
+  const existingHistoryIds = new Set((existingHistories ?? []).map((history) => history.id))
+  const historyIdsToDelete = [...existingHistoryIds].filter((id) => !nextHistoryIds.has(id))
+
   if (state.histories.length > 0) {
-    const { error: insertHistoriesError } = await supabase.from("histories").insert(
+    const { error: upsertHistoriesError } = await supabase.from("histories").upsert(
       state.histories.map((history) => ({
         id: history.id,
         type: history.type,
@@ -115,11 +158,23 @@ export async function persistSharedInventoryState(state: InventoryState): Promis
         member_name: history.memberName ?? null,
         source: history.source,
         timestamp: history.timestamp,
-      }))
+      })),
+      { onConflict: "id" }
     )
 
-    if (insertHistoriesError) {
-      throw insertHistoriesError
+    if (upsertHistoriesError) {
+      throw upsertHistoriesError
+    }
+  }
+
+  if (historyIdsToDelete.length > 0) {
+    const { error: deleteHistoriesError } = await supabase
+      .from("histories")
+      .delete()
+      .in("id", historyIdsToDelete)
+
+    if (deleteHistoriesError) {
+      throw deleteHistoriesError
     }
   }
 }

@@ -1,20 +1,21 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { QRCodeSVG } from "qrcode.react"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useInventory } from "@/contexts/inventory-context"
 import { getMemberConsumeCount } from "@/lib/inventory-helpers"
+import { buildQrConsumeUrl } from "@/lib/qr-url"
 
 export function MemberManager() {
   const { state, addMember, updateMember, removeMember } = useInventory()
   const [newName, setNewName] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState("")
+  const [origin, setOrigin] = useState<string | undefined>(undefined)
 
-  const appBaseUrl = useMemo(() => {
-    if (typeof window === "undefined") return ""
-    return window.location.origin
+  useEffect(() => {
+    setOrigin(window.location.origin)
   }, [])
 
   return (
@@ -52,15 +53,13 @@ export function MemberManager() {
         <div className="section-head">
           <div>
             <h2>メンバー一覧 / QR表示</h2>
-            <p>スマホの標準カメラから直接開けます</p>
+            <p>スマホ標準カメラでQRを読み取ると、そのまま1本消費を記録できます</p>
           </div>
         </div>
 
         <div className="member-manage-list">
           {state.members.map((member) => {
-            const qrValue = `${appBaseUrl}/qr?memberId=${encodeURIComponent(
-              member.id
-            )}&t=${encodeURIComponent(member.id)}`
+            const qrValue = buildQrConsumeUrl(member.id, origin)
 
             return (
               <article key={member.id} className="member-manage-card">
@@ -119,8 +118,8 @@ export function MemberManager() {
                 </div>
 
                 <div className="qr-card">
-                  {appBaseUrl ? <QRCodeSVG value={qrValue} size={128} /> : <div>URLを読込中...</div>}
-                  <p className="qr-caption">{member.name}用QR</p>
+                  <QRCodeSVG value={qrValue} size={160} />
+                  <p className="qr-caption">{member.name}用QR（標準カメラ用）</p>
                 </div>
               </article>
             )
