@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="top-header">
         <div>
           <p className="eyebrow">炭酸水 在庫管理</p>
-          <h1 className="page-title">すぐ記録、あとで見返せる管理アプリ</h1>
+          <h1 className="page-title">炭酸水管理アプリ</h1>
         </div>
         <div className="header-badge">
           <QrCode size={18} />

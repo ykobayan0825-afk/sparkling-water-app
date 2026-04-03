@@ -57,8 +57,6 @@ export function QRScannerSheet() {
     setIsProcessing(true)
 
     try {
-      await cleanupScanner()
-
       const raw = decodedText.trim()
 
       let memberId = raw
@@ -84,7 +82,9 @@ export function QRScannerSheet() {
         return
       }
 
-      consumeByMember(memberId, "qr")
+      await consumeByMember(memberId, "qr")
+      toast.success(`${member.name}が1本飲みました`)
+      await cleanupScanner()
       setIsOpen(false)
     } catch {
       toast.error("QRの読み取りに失敗しました")
